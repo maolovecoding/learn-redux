@@ -2,7 +2,7 @@
  * @Author: 毛毛
  * @Date: 2022-07-04 17:04:24
  * @Last Modified by: 毛毛
- * @Last Modified time: 2022-07-04 17:12:04
+ * @Last Modified time: 2022-07-04 17:16:10
  */
 // redux 的学习
 /**
@@ -14,7 +14,7 @@ function createStore(reducer, initialState) {
   // 在仓库内部定义一个初始的状态
   let state = initialState;
   // 监听函数
-  const listeners = [];
+  let listeners = [];
   /**
    * 获取当前仓库最新的状态
    */
@@ -24,9 +24,14 @@ function createStore(reducer, initialState) {
   /**
    * 订阅状态的更新
    * @param {*} listener 状态更新后执行的监听函数
+   * @returns 返回一个可以取消监听函数的方法
    */
   function subscribe(listener) {
     listeners.push(listener);
+    // 返回一个可以取消监听函数的方法
+    return () => {
+      listeners = listeners.filter((l) => l !== listener);
+    };
   }
   /**
    * 派发 更新状态
