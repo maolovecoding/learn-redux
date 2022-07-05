@@ -1,27 +1,7 @@
-import { createStore } from "./redux";
-import { Component } from "react";
-
-const ADD = "add";
-const MINUS = "minus";
-/**
- * 纯函数
- * @param {*} state 老状态
- * @param {*} action 动作 必须有一个type属性
- */
-function reducer(state = { counter: 0 }, action) {
-  switch (action.type) {
-    case ADD:
-      return { counter: state.counter + 1 };
-    case MINUS:
-      return { counter: state.counter - 1 };
-    default:
-      return state;
-  }
-}
-const store = createStore(reducer, { counter: 0 });
-
-console.log(store);
-
+import store, { ADD, MINUS } from "./store";
+import { useEffect, useState, Component } from "react";
+import { bindActionCreators } from "./redux";
+import actionCreators from './store/actionCreator/counter'
 class App extends Component {
   state = {
     // getState 获取store的状态
@@ -34,7 +14,7 @@ class App extends Component {
       this.setState({
         counter: store.getState().counter,
       });
-      console.log(store.getState())
+      console.log(store.getState());
     });
   }
   add = () => {
@@ -54,4 +34,32 @@ class App extends Component {
   }
 }
 
-export default App;
+// actionCreators
+// const add = () => ({ type: ADD });
+// const minus = () => ({ type: MINUS });
+// const actionCreators = { add, minus };
+// 把一个action创建者对象和store.dispatch 方法进行绑定 返回一个对象
+const boundActions = bindActionCreators(actionCreators, store.dispatch);
+/**
+ * 组件和仓库有两种关系：
+ * 1. 输入 组件可以从仓库中读取状态数据进行渲染和显示
+ * 2. 输出 可以在组件派发动作，修改仓库中的状态
+ */
+const Counter = () => {
+  const [counter, setCounter] = useState(store.getState());
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setCounter(store.getState());
+    });
+    return unsubscribe;
+  }, []);
+  return (
+    <div>
+      <h2>counter: {counter.counter}</h2>
+      <button onClick={boundActions.add}>+1</button>
+      <button onClick={boundActions.minus}>-1</button>
+    </div>
+  );
+};
+
+export default Counter;
