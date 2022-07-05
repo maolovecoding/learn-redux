@@ -251,3 +251,211 @@ function bindActionCreator(actionCreator, dispatch) {
 }
 ```
 
+
+
+### combineReducers
+
+React应用不管多大，只能有一个仓库，只能有一个reducer，reducer只能维护一个状态。那就可能导致我们一个reducer里面有上百个`switch case`，维护起来很难受。
+
+因此：我们可以考虑把`reducer`拆分，一个唯一的reducer，由很多个小的reducer组合而成。也就分模块。
+
+**action-type**
+
+```js
+export const ADD = "add";
+export const ADDNUM = "addNum";
+export const MINUS = "minus";
+
+export const ADD2 = "add2";
+export const ADDNUM2 = "addNum2";
+export const MINUS2 = "minus2";
+```
+
+**counter1 reducer**:
+
+```js
+import { ADD, MINUS, ADDNUM } from "../action-type";
+/**
+ * 纯函数
+ * @param {*} state 老状态
+ * @param {*} action 动作 必须有一个type属性
+ */
+function reducer(state = { counter: 0 }, action) {
+  switch (action.type) {
+    case ADD:
+      return { counter: state.counter + 1 };
+    case ADDNUM:
+      return { counter: state.counter + action.num };
+    case MINUS:
+      return { counter: state.counter - 1 };
+    default:
+      return state;
+  }
+}
+
+export default reducer;
+
+```
+
+**counter2 reducer **
+
+```js
+import { ADD2, MINUS2, ADDNUM2 } from "../action-type";
+function reducer(state = { counter: 0 }, action) {
+  switch (action.type) {
+    case ADD2:
+      return { counter: state.counter + 1 };
+    case ADDNUM2:
+      return { counter: state.counter + action.num };
+    case MINUS2:
+      return { counter: state.counter - 1 };
+    default:
+      return state;
+  }
+}
+
+export default reducer;
+
+```
+
+**合并reducer**:借助redux提供的 combineReducers方法
+
+```js
+import counter1 from "./counter1";
+import counter2 from "./counter2";
+import { combineReducers } from "redux";
+
+// 合并多个reducer
+const reducers = { counter1, counter2 };
+const combineReducer = combineReducers(reducers);
+
+export default combineReducer;
+```
+
+```js
+import { createStore } from "../redux";
+import combineReducer from "./reducers";
+const store = createStore(combineReducer);
+export default store;
+export * from "./action-type";
+
+```
+
+**actionCreators**:
+
+```js
+import { ADD, MINUS, ADDNUM } from "../action-type";
+// actionCreators
+const add = () => ({ type: ADD });
+const addNum = (num) => ({ type: ADDNUM, num });
+const minus = () => ({ type: MINUS });
+const actionCreators = { add, addNum, minus };
+export default actionCreators;
+```
+
+```js
+import { ADD2, MINUS2, ADDNUM2 } from "../action-type";
+// actionCreators
+const add2 = () => ({ type: ADD2 });
+const addNum2 = (num) => ({ type: ADDNUM2, num });
+const minus2 = () => ({ type: MINUS2 });
+const actionCreators2 = { add2, addNum2, minus2 };
+export default actionCreators2;
+```
+
+**两个计数器之间互不干扰：**
+
+```jsx
+import store from "./store";
+import { useEffect, useState } from "react";
+import { bindActionCreators } from "./redux";
+import actionCreators from "./store/actionCreator/counter";
+import actionCreators2 from "./store/actionCreator/counter2";
+
+// 把一个action创建者对象和store.dispatch 方法进行绑定 返回一个对象
+const boundActions = bindActionCreators(actionCreators, store.dispatch);
+/**
+ * 组件和仓库有两种关系：
+ * 1. 输入 组件可以从仓库中读取状态数据进行渲染和显示
+ * 2. 输出 可以在组件派发动作，修改仓库中的状态
+ */
+const Counter = () => {
+  const [counter, setCounter] = useState(store.getState().counter1);
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setCounter(store.getState().counter1);
+    });
+    return unsubscribe;
+  }, []);
+  return (
+    <div>
+      <h2>counter: {counter.counter}</h2>
+      <button onClick={boundActions.add}>+1</button>
+      <button onClick={() => boundActions.addNum(5)}>+5</button>
+      <button onClick={boundActions.minus}>-1</button>
+    </div>
+  );
+};
+const boundActions2 = bindActionCreators(actionCreators2, store.dispatch);
+const Counter2 = () => {
+  const [counter, setCounter] = useState(store.getState().counter2);
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setCounter(store.getState().counter2);
+    });
+    return unsubscribe;
+  }, []);
+  return (
+    <div>
+      <h2>counter: {counter.counter}</h2>
+      <button onClick={boundActions2.add2}>+1</button>
+      <button onClick={() => boundActions2.addNum2(5)}>+5</button>
+      <button onClick={boundActions2.minus2}>-1</button>
+    </div>
+  );
+};
+
+const App = () => {
+  return (
+    <>
+      <Counter />
+      <hr />
+      <Counter2 />
+    </>
+  );
+};
+
+export default App;
+```
+
+
+
+#### combineReducers的原理
+
+该方法是组合多个reducer为一个reducer。参数是一个多个reducer集合的对象，且对多个reducer之前分模块，状态也分成的多个模块，其模块名就是reducer集合对象的key。
+
+```js
+/**
+ * 合并多个reducer
+ * @param {{[key:string]:Function}} reducers {counter1: reducer1 }
+ */
+export function combineReducers(reducers) {
+  // 返回一个全局唯一的reducer函数  state是每次传入的上次的state
+  return function (state = {}, action) {
+    let nextState = {};
+    for (const key in reducers) {
+      const reducer = reducers[key];
+      // 老状态
+      const lastStateForKey = state[key];
+      // 计算新状态
+      nextState[key] = reducer(lastStateForKey, action);
+    }
+    return nextState;
+  };
+}
+```
+
+
+
+
+

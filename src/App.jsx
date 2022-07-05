@@ -1,43 +1,9 @@
-import store, { ADD, MINUS } from "./store";
-import { useEffect, useState, Component } from "react";
+import store from "./store";
+import { useEffect, useState } from "react";
 import { bindActionCreators } from "./redux";
-import actionCreators from './store/actionCreator/counter'
-class App extends Component {
-  state = {
-    // getState 获取store的状态
-    counter: store.getState().counter,
-  };
-  componentDidMount() {
-    // 订阅状态的变化
-    store.subscribe(() => {
-      // 状态更新 以后 执行该回调
-      this.setState({
-        counter: store.getState().counter,
-      });
-      console.log(store.getState());
-    });
-  }
-  add = () => {
-    store.dispatch({ type: ADD });
-  };
-  minus = () => {
-    store.dispatch({ type: MINUS });
-  };
-  render() {
-    return (
-      <div>
-        <h2>counter: {this.state.counter}</h2>
-        <button onClick={this.add}>+1</button>
-        <button onClick={this.minus}>-1</button>
-      </div>
-    );
-  }
-}
+import actionCreators from "./store/actionCreator/counter";
+import actionCreators2 from "./store/actionCreator/counter2";
 
-// actionCreators
-// const add = () => ({ type: ADD });
-// const minus = () => ({ type: MINUS });
-// const actionCreators = { add, minus };
 // 把一个action创建者对象和store.dispatch 方法进行绑定 返回一个对象
 const boundActions = bindActionCreators(actionCreators, store.dispatch);
 /**
@@ -46,10 +12,10 @@ const boundActions = bindActionCreators(actionCreators, store.dispatch);
  * 2. 输出 可以在组件派发动作，修改仓库中的状态
  */
 const Counter = () => {
-  const [counter, setCounter] = useState(store.getState());
+  const [counter, setCounter] = useState(store.getState().counter1);
   useEffect(() => {
     const unsubscribe = store.subscribe(() => {
-      setCounter(store.getState());
+      setCounter(store.getState().counter1);
     });
     return unsubscribe;
   }, []);
@@ -57,9 +23,38 @@ const Counter = () => {
     <div>
       <h2>counter: {counter.counter}</h2>
       <button onClick={boundActions.add}>+1</button>
+      <button onClick={() => boundActions.addNum(5)}>+5</button>
       <button onClick={boundActions.minus}>-1</button>
     </div>
   );
 };
+const boundActions2 = bindActionCreators(actionCreators2, store.dispatch);
+const Counter2 = () => {
+  const [counter, setCounter] = useState(store.getState().counter2);
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setCounter(store.getState().counter2);
+    });
+    return unsubscribe;
+  }, []);
+  return (
+    <div>
+      <h2>counter: {counter.counter}</h2>
+      <button onClick={boundActions2.add2}>+1</button>
+      <button onClick={() => boundActions2.addNum2(5)}>+5</button>
+      <button onClick={boundActions2.minus2}>-1</button>
+    </div>
+  );
+};
 
-export default Counter;
+const App = () => {
+  return (
+    <>
+      <Counter />
+      <hr />
+      <Counter2 />
+    </>
+  );
+};
+
+export default App;

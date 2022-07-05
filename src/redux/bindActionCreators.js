@@ -15,9 +15,9 @@ function bindActionCreators(actionCreator, dispatch) {
 }
 
 function bindActionCreator(actionCreator, dispatch) {
-  return (...args) => {
+  return function (...args) {
     // 、派发action 也可以接收传入的参数
-    return dispatch(actionCreator(...args));
+    return dispatch(actionCreator.call(this, ...args));
   };
 }
 
