@@ -1,59 +1,75 @@
 import store from "./store";
-import { useEffect, useState } from "react";
+import {
+  Provider,
+  connect,
+  useSelector,
+  useDispatch,
+  useBoundDispatch,
+} from "./react-redux";
 import { bindActionCreators } from "./redux";
 import actionCreators from "./store/actionCreator/counter";
 import actionCreators2 from "./store/actionCreator/counter2";
+import { Component } from "react";
 
-// 把一个action创建者对象和store.dispatch 方法进行绑定 返回一个对象
-const boundActions = bindActionCreators(actionCreators, store.dispatch);
 /**
- * 组件和仓库有两种关系：
- * 1. 输入 组件可以从仓库中读取状态数据进行渲染和显示
- * 2. 输出 可以在组件派发动作，修改仓库中的状态
+ * 函数式组件使用react-redux
  */
+const CounterBak = () => {
+  // 总状态中取出我们要使用的分状态
+  const state = useSelector((state) => state.counter1);
+  const dispatch = useDispatch();
+  return (
+    <div>
+      <h2>counter: {state.counter}</h2>
+      <button onClick={() => dispatch(actionCreators.add())}>+1</button>
+      <button onClick={() => dispatch(actionCreators.addNum(5))}>+5</button>
+      <button onClick={() => dispatch(actionCreators.minus())}>-1</button>
+    </div>
+  );
+};
+
 const Counter = () => {
-  const [counter, setCounter] = useState(store.getState().counter1);
-  useEffect(() => {
-    const unsubscribe = store.subscribe(() => {
-      setCounter(store.getState().counter1);
-    });
-    return unsubscribe;
-  }, []);
+  // 总状态中取出我们要使用的分状态
+  const state = useSelector((state) => state.counter1);
+  // const dispatch = useDispatch();
+  const boundActionCreator = useBoundDispatch(actionCreators);
   return (
     <div>
-      <h2>counter: {counter.counter}</h2>
-      <button onClick={boundActions.add}>+1</button>
-      <button onClick={() => boundActions.addNum(5)}>+5</button>
-      <button onClick={boundActions.minus}>-1</button>
+      <h2>counter: {state.counter}</h2>
+      <button onClick={boundActionCreator.add}>+1</button>
+      <button onClick={() => boundActionCreator.addNum(5)}>+5</button>
+      <button onClick={boundActionCreator.minus}>-1</button>
     </div>
   );
 };
-const boundActions2 = bindActionCreators(actionCreators2, store.dispatch);
-const Counter2 = () => {
-  const [counter, setCounter] = useState(store.getState().counter2);
-  useEffect(() => {
-    const unsubscribe = store.subscribe(() => {
-      setCounter(store.getState().counter2);
-    });
-    return unsubscribe;
-  }, []);
-  return (
-    <div>
-      <h2>counter: {counter.counter}</h2>
-      <button onClick={boundActions2.add2}>+1</button>
-      <button onClick={() => boundActions2.addNum2(5)}>+5</button>
-      <button onClick={boundActions2.minus2}>-1</button>
-    </div>
-  );
-};
+/**
+ * 类组件使用react-redux
+ */
+class Counter2 extends Component {
+  render() {
+    return (
+      <>
+        <h2>counter: {this.props.counter}</h2>
+        <button onClick={this.props.add2}>+1</button>
+        <button onClick={() => this.props.addNum2(5)}>+5</button>
+        <button onClick={this.props.minus2}>-1</button>
+      </>
+    );
+  }
+}
+// 将state映射为组件的props -> {counter:0, add2, addNum2, ...} 返回的值会被展开一层
+const mapStateToProps = (state) => state.counter2;
+// 连接仓库和组件
+Counter2 = connect(mapStateToProps, actionCreators2)(Counter2);
 
 const App = () => {
   return (
-    <>
+    // 提供仓库
+    <Provider store={store}>
       <Counter />
       <hr />
       <Counter2 />
-    </>
+    </Provider>
   );
 };
 

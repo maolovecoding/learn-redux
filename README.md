@@ -7,8 +7,6 @@
 - 在React中，数据在组件中是单向流动的
 - 数据从一个方向父组件流向子组件(通过props)，由于这个特征，两个非父子关系的组件(或者称作兄弟组件)之间的通信就比较麻烦
 
-
-
 ## redux设计思想
 
 - Redux是将整个应用状态存储到到一个地方，称为store
@@ -16,8 +14,6 @@
 
 - 组件可以派发dispatch行为action给store,而不是直接通知其它组件
 - 其它组件可以通过订阅store中的状态(state)来刷新自己的视图
-
-
 
 ### createStore
 
@@ -251,8 +247,6 @@ function bindActionCreator(actionCreator, dispatch) {
 }
 ```
 
-
-
 ### combineReducers
 
 React应用不管多大，只能有一个仓库，只能有一个reducer，reducer只能维护一个状态。那就可能导致我们一个reducer里面有上百个`switch case`，维护起来很难受。
@@ -297,7 +291,7 @@ export default reducer;
 
 ```
 
-**counter2 reducer **
+**counter2 reducer**
 
 ```js
 import { ADD2, MINUS2, ADDNUM2 } from "../action-type";
@@ -428,8 +422,6 @@ const App = () => {
 export default App;
 ```
 
-
-
 #### combineReducers的原理
 
 该方法是组合多个reducer为一个reducer。参数是一个多个reducer集合的对象，且对多个reducer之前分模块，状态也分成的多个模块，其模块名就是reducer集合对象的key。
@@ -455,7 +447,338 @@ export function combineReducers(reducers) {
 }
 ```
 
+## react-redux
 
+通过上面的学习，我们可以将状态都交给redux进行管理。而且也发现了，redux并不是一个依赖react的库。
 
+但是我们在react中进行状态的变更，还需要手动订阅，手动派发action，还是有一点不那么方便的。
 
+我们希望可以自动派发和订阅状态的变化等，就需要用到一个库：`react-redux`
 
+对于我们使用者来说是很容易的：
+
+类组件中我们可以这样使用：
+
+```jsx
+import { Provider, connect } from "react-redux";
+import actionCreators2 from "./store/actionCreator/counter2";
+class Counter2 extends Component {
+  render() {
+    console.log(this.props);
+    return (
+      <>
+        <h2>counter: {this.props.counter}</h2>
+        <button onClick={this.props.add2}>+1</button>
+        <button onClick={() => this.props.addNum2(5)}>+5</button>
+        <button onClick={this.props.minus2}>-1</button>
+      </>
+    );
+  }
+}
+// 将state映射为组件的props -> {counter:0, add2, addNum2, ...} 返回的值会被展开一层
+const mapStateToProps = (state) => state.counter2;
+// 连接仓库和组件
+Counter2 = connect(mapStateToProps, actionCreators2)(Counter2);
+
+const App = () => {
+  return (
+    // 提供仓库
+    <Provider store={store}>
+      <Counter2 />
+    </Provider>
+  );
+};
+```
+
+这样：我们只需要在类组件中，直接使用派发方法即可，而不需要自己手动的派发。也不需要订阅状态等。
+
+#### Provider
+
+Provider其实就是一个context，用来提供store。
+
+**ReactReduxContext：**
+
+```js
+import { createContext } from "react";
+
+const ReactReduxContext = createContext();
+export default ReactReduxContext;
+```
+
+**provider:**
+
+```jsx
+import ReactReduxContext from "./reactReduxContext";
+/**
+ * 提供store
+ * @param {*} param0
+ * @returns
+ */
+export default function Provider({ store, children }) {
+  return (
+    <ReactReduxContext.Provider value={{store}}>
+      { children }
+    </ReactReduxContext.Provider>
+  );
+}
+```
+
+**connect:**
+
+connect其实就是一个高阶组件，也是一个高阶函数。函数本身接收两个参数，返回值仍然是一个高阶函数，参数是组件，
+
+先来看类组件的实现：
+
+本质上就是对原有组件的扩展，我们把订阅状态，以及派发事件都自己封装在内部，外界组件直接通过props获取状态和调用方法派发即可，逻辑的处理封装在内部。
+
+```jsx
+import { Component } from "react";
+import ReactReduxContext from "./reactReduxContext";
+import { bindActionCreators } from "../redux";
+/**
+ * 连接组件和仓库store
+ * @param {*} mapStateToProps  state映射为props的函数
+ * @param {*} mapDispatchToProps 派发的函数 映射为组件的props
+ * @returns
+ */
+export default function connect(mapStateToProps, mapDispatchToProps) {
+  return function (OldComponent) {
+    return class extends Component {
+      static contextType = ReactReduxContext;
+      /**
+       *
+       * @param {*} props
+       * @param {*} context 就是我们上下文Context
+       */
+      constructor(props, context) {
+        super(props);
+        // 拿到仓库
+        const { store } = context;
+        const { getState, subscribe, dispatch } = store;
+        // 状态
+        this.state = mapStateToProps(getState());
+        this.unsubscribe = subscribe(() => {
+          this.setState(mapStateToProps(getState()));
+        });
+        // 派发的函数
+        this.dispatchProps = bindActionCreators(mapDispatchToProps, dispatch);
+      }
+      render() {
+        return (
+          <OldComponent
+            {...this.props}
+            {...this.state}
+            {...this.dispatchProps}
+          />
+        );
+      }
+      componentWillUnmount() {
+        // 取消订阅
+        this.unsubscribe();
+      }
+    };
+  };
+}
+```
+
+### useSelect  useDispatch
+
+**上面是类组件的connect的使用方式。**
+
+现在前端越来越淡化类组件，大力推崇函数式组件。但是函数式组件的使用方法肯定是和类组件不相同的。我们肯定是需要借助`hooks`来实现我们想要的功能。
+
+在函数式组件中需要使用两个hook，`useSelect 和 useDispatch`.
+
+```jsx
+import { useSelector, useDispatch } from "react-redux";
+/**
+ * 函数式组件使用react-redux
+ */
+const Counter = () => {
+  // 总状态中取出我们要使用的分状态
+  const state = useSelector((state) => state.counter1);
+  const dispatch = useDispatch();
+  return (
+    <div>
+      <h2>counter: {state.counter}</h2>
+      <button onClick={() => dispatch(actionCreators.add())}>+1</button>
+      <button onClick={() => dispatch(actionCreators.addNum(5))}>+5</button>
+      <button onClick={() => dispatch(actionCreators.minus())}>-1</button>
+    </div>
+  );
+};
+```
+
+### 实现原理
+
+**useDispatch**是很容易的，无非就是拿到dispatch方法:
+
+```js
+import { useContext } from "react";
+import ReactReduxContext from "../reactReduxContext";
+
+export const useDispatch = () => {
+  const { store } = useContext(ReactReduxContext);
+  return store.dispatch;
+};
+```
+
+**useSelector方法会麻烦一些：**
+
+我们根据传入的函数，然后将拿到的状态传递给参数`selector`，这个函数的返回值就是分状态：
+
+```js
+import { useContext } from "react";
+import ReactReduxContext from "../reactReduxContext";
+
+export const useSelector = (selector) => {
+  const { store } = useContext(ReactReduxContext);
+  const state = store.getState();
+  const selectedState = selector(state);
+  return selectedState;
+};
+```
+
+如果此时我们在每次都打印store里的状态，发现此时每次在点击的时候，状态都会发生更改，但是组件并没有发生重新渲染，因为我们还没有监听状态的更新。
+
+```js
+import { useRef, useReducer, useLayoutEffect, useContext } from "react";
+import ReactReduxContext from "../reactReduxContext";
+/**
+ * 获取状态并订阅状态的变更
+ * @param {*} selector
+ * @returns
+ */
+export const useSelector = (selector, equalityFn = shallowEqual) => {
+  const prevSelectedState = useRef(null);
+  const { store } = useContext(ReactReduxContext);
+  const state = store.getState();
+  const selectedState = selector(state);
+  // 为了状态更新 可以重新渲染组件
+  const [, forceUpdate] = useReducer((x) => x + 1, 0); // 只是为了更新组件 没特别含义
+  useLayoutEffect(() => {
+    // 监听状态的变化 执行回调
+    return store.subscribe(() => {
+      // 获取最新的分状态
+      const selectedState = selector(store.getState());
+      // 对比上次和最新的状态 状态不一致才会更新组件
+      if (!equalityFn(prevSelectedState.current, selectedState)) {
+        console.log(1);
+        forceUpdate();
+        prevSelectedState.current = selectedState;
+      }
+    });
+  }, [store]); // 一个应用只有一个store 一般不会出现store的更改
+  return selectedState;
+};
+
+/**
+ * 两个对象 浅层比较
+ * @param {*} obj1
+ * @param {*} obj2
+ * @returns
+ */
+export function shallowEqual(obj1, obj2) {
+  if (obj1 === obj2) return true;
+  // 基本类型
+  if (
+    typeof obj1 !== "object" ||
+    obj1 === null ||
+    typeof obj2 !== "object" ||
+    obj2 === null
+  )
+    return false;
+  // 都是对象 且属性都存在
+  const k1 = Object.keys(obj1);
+  const k2 = Object.keys(obj2);
+  if (k1.length !== k2.length) return false;
+  for (const k of k1) {
+    // 没有该属性在对象自身上 或者属性值不同
+    if (!obj2.hasOwnProperty(k) || obj1[k] !== obj2[k]) {
+      return false;
+    }
+  }
+  return true;
+}
+```
+
+**此时就可以实现状态的改变使组件更新**
+
+但是在函数式组件内，派发action还是觉得有点麻烦，我们想像类组件一样更加方便一些，那么我们可以再封装一个hook，帮我们绑定`actionCreator`和`dispatch`，然后在函数式组件中就可以直接调用方法了。
+
+#### useBoundDispatch
+
+这个方法在`react-redux`中并没有提供该hook
+
+```js
+import { useContext } from "react";
+import ReactReduxContext from "../reactReduxContext";
+import { bindActionCreators } from "../../redux";
+export const useBoundDispatch = (actionCreators) => {
+  const { store } = useContext(ReactReduxContext);
+  const boundActionCreators = bindActionCreators(
+    actionCreators,
+    store.dispatch
+  );
+  return boundActionCreators;
+};
+```
+
+这样：在函数式组件中我们就可以这样使用：
+
+```jsx
+const Counter = () => {
+  // 总状态中取出我们要使用的分状态
+  const state = useSelector((state) => state.counter1);
+  // const dispatch = useDispatch();
+  const boundActionCreator = useBoundDispatch(actionCreators);
+  return (
+    <div>
+      <h2>counter: {state.counter}</h2>
+      <button onClick={boundActionCreator.add}>+1</button>
+      <button onClick={() => boundActionCreator.addNum(5)}>+5</button>
+      <button onClick={boundActionCreator.minus}>-1</button>
+    </div>
+  );
+};
+```
+
+### connect的函数式实现
+
+**前面我们实现了connect方法，但是使用的是类组件的形式。其实我们还可以使用函数式组件实现同样的功能**
+
+```jsx
+export default function connect(mapStateToProps, mapDispatchToProps) {
+  return function (OldComponent) {
+    return (props) => {
+      const { store } = useContext(ReactReduxContext);
+      const { getState, subscribe, dispatch } = store;
+      const prevState = getState();
+      const stateToProps = useMemo(
+        () => mapStateToProps(prevState),
+        [prevState]
+      );
+      const dispatchProps = useMemo(() => {
+        // 其实 mapDispatchToProps 是有多种写法的 7种 常见的有三种
+        // 1. 对象 2. 函数 3. 什么都不传
+        if (typeof mapDispatchToProps === "function") {
+          return mapDispatchToProps(store.dispatch);
+        } else if (
+          mapDispatchToProps !== null &&
+          typeof mapDispatchToProps === "object"
+        ) {
+          return bindActionCreators(mapDispatchToProps, dispatch);
+        } else {
+          return { dispatch }; // undefined
+        }
+      }, [store.dispatch]);
+      // 订阅
+      const [, forceUpdate] = useReducer((x) => x + 1, 0);
+      useLayoutEffect(() => {
+        return subscribe(forceUpdate);
+      }, [subscribe]);
+      return <OldComponent {...props} {...stateToProps} {...dispatchProps} />;
+    };
+  };
+}
+```

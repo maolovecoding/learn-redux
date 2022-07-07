@@ -14,7 +14,6 @@ export function combineReducers(reducers) {
       // 计算新状态
       nextState[key] = reducer(lastStateForKey, action);
     }
-    console.log(nextState);
     return nextState;
   };
 }
