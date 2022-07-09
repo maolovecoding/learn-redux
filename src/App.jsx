@@ -53,6 +53,9 @@ class Counter2 extends Component {
         <button onClick={this.props.add2}>+1</button>
         <button onClick={() => this.props.addNum2(5)}>+5</button>
         <button onClick={this.props.minus2}>-1</button>
+        <button onClick={this.props.thunkAdd}>+2</button>
+        <button onClick={this.props.promise1Add}>+3</button>
+        <button onClick={this.props.promise2Add}>+4</button>
       </>
     );
   }

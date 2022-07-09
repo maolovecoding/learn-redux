@@ -782,3 +782,200 @@ export default function connect(mapStateToProps, mapDispatchToProps) {
   };
 }
 ```
+
+## redux 中间件
+
+- 如果没有中间件，redux的工作流程是：`action  ->  reducer`。也就是所谓的同步操作。由dispatch触发action，直接去reducer执行相应的动作。
+- 但是在某些比较复杂的业务逻辑中，这种同步的实现方式并不难很好的解决我们的问题。比如我们有一个需要异步获取数据的请求，就必须通过中间件才能实现。`redux -> action -> middleware -> reducer -> state`
+- 中间件的机制可以放我们改变数据流，实现如异步action，action过滤，日志输出，异常报告等功能。
+
+
+
+### 单个中间件
+
+#### applyMiddleware
+
+实现一个中间件，我们一般还需要一个方法：`applyMiddleware`
+
+目前我们只考虑一个中间件的实现：
+
+```js
+/**
+ * 应用中间件
+ * @param {*} middleware 中间件
+ */
+export function applyMiddleware(middleware) {
+  /**
+   * @param createStore 创建store仓库
+   */
+  return function (createStore) {
+    /**
+     * @param reducer
+     * @param preloadedState 初始状态
+     */
+    return function (reducer, preloadedState) {
+      const store = createStore(reducer);
+      const dispatch = middleware(store)(store.dispatch);
+      return {
+        ...store,
+        dispatch,
+      };
+    };
+  };
+}
+```
+
+#### 实现一个日志中间件
+
+```js
+// 实现一个日志中间件 中间件的结构都是定死的
+export function logger({ getState, dispatch }) {
+  /**
+   * @param next 调用下一个中间件 如果只有一个中间件 指向 store.dispatch
+   */
+  return function (next) {
+    /**
+     * 改造后的dispatch方法
+     * @param action 动作
+     */
+    return function (action) {
+      console.log("prev state :", getState());
+      next(action);
+      console.log("next state :", getState());
+    };
+  };
+}
+```
+
+**此时，我们再创建仓库，就可以使用中间件应用进去了**
+
+```js
+const store = applyMiddleware(logger)(createStore)(combineReducer);
+```
+
+**我们之所以让logger中间件，以及applyMiddleware等方法都是高阶函数，主要是为了实现函数的柯里化，方便传递参数，后续我们的中间件可能传入多个中间件参数。**
+
+此时我们可以发现效果和之前的一致。而且多了日志记录的功能。
+
+### compose
+
+但是对于多个中间件的情况，我们此时还并没有处理。此时我们需要一个compose组合函数，来将多个中间件组合成一个中间件函数。
+
+```js
+export const compose = (...funcs) => {
+  if (funcs.length === 0) {
+    return (arg) => arg;
+  }
+  if (funcs.length === 1) {
+    return funcs[0];
+  }
+  return funcs.reduce(
+    (prev, curr) =>
+      (...args) =>
+        curr(prev(...args))
+  );
+};
+```
+
+**更新一下applyMiddleware方法，支持多个中间件：**
+
+```js
+export function applyMiddleware(...middleWares) {
+  /**
+   * @param createStore 创建store仓库
+   */
+  return function (createStore) {
+    /**
+     * @param reducer
+     * @param preloadedState 初始状态
+     */
+    return function (reducer, preloadedState) {
+      // 创建store
+      const store = createStore(reducer);
+      // 定义一个dispatch 是中间件处理过后的
+      let dispatch;
+      const middlewareAPI = {
+        getState: store.getState,
+        dispatch: (action) => dispatch(action),
+      };
+      // 拿到中间件的级联 执行一次中间件 将每个中间件的外层store用middlewareAPI去掉
+      let chain = middleWares.map((middleWare) => middleWare(middlewareAPI));
+      // 中间件组合 得到一个新的函数 然后执行 传入老的dispatch
+      dispatch = compose(...chain)(store.dispatch);
+      return {
+        ...store,
+        dispatch,
+      };
+    };
+  };
+}
+```
+
+**此时就支持了多个中间件的链式调用：**
+
+```js
+const store = applyMiddleware(logger2, logger)(createStore)(combineReducer);
+```
+
+redux的中间件和koa很类似，因为redux作者也说过就是受了koa的启发，才有了redux中间件原理。
+
+
+
+### redux-thunk
+
+`redux-thunk`中间件，可以让我们派发一个函数，其核心就是对action是函数的时候，执行这个函数。其原理类似于：
+
+```js
+// 实现一个 thunk中间件 支持派发一个函数
+export function thunk({ dispatch, getState }) {
+  return function (next) {
+    return (action) => {
+      // 派发的action是函数 执行该函数 传入dispatch和getState
+      if (typeof action === "function") {
+        // 也就是当前中间件后面的中间件使用的dispatch 都是前一个中间件处理过后的dispatch
+        return action(dispatch, getState);
+      } else {
+        return next(action);
+      }
+    };
+  };
+}
+```
+
+### redux-promise
+
+实现redux-promise中间件
+
+```js
+// 实现redux-promise中间件
+export function promise({ dispatch, getState }) {
+  return (next) => {
+    return (action) => {
+      // action是一个promise
+      if (action.then && typeof action.then === "function") {
+        action.then((action) => dispatch(action)).catch(dispatch);
+      } else if (action.payload && typeof action.payload.then === "function") {
+        action.payload
+          .then((result) => dispatch({ ...action, payload: result }))
+          .catch((error) => {
+            debugger;
+            console.log(error);
+            dispatch({ ...action, payload: error, error: true });
+            return Promise.reject(error);
+          });
+      } else {
+        next(action);
+      }
+    };
+  };
+}
+```
+
+
+
+
+
+
+
+
+

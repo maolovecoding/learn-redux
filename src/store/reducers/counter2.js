@@ -4,7 +4,7 @@ function reducer(state = { counter: 0 }, action) {
     case ADD2:
       return { counter: state.counter + 1 };
     case ADDNUM2:
-      return { counter: state.counter + action.num };
+      return { counter: state.counter + action.payload.num };
     case MINUS2:
       return { counter: state.counter - 1 };
     default:
