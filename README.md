@@ -789,8 +789,6 @@ export default function connect(mapStateToProps, mapDispatchToProps) {
 - 但是在某些比较复杂的业务逻辑中，这种同步的实现方式并不难很好的解决我们的问题。比如我们有一个需要异步获取数据的请求，就必须通过中间件才能实现。`redux -> action -> middleware -> reducer -> state`
 - 中间件的机制可以放我们改变数据流，实现如异步action，action过滤，日志输出，异常报告等功能。
 
-
-
 ### 单个中间件
 
 #### applyMiddleware
@@ -919,8 +917,6 @@ const store = applyMiddleware(logger2, logger)(createStore)(combineReducer);
 
 redux的中间件和koa很类似，因为redux作者也说过就是受了koa的启发，才有了redux中间件原理。
 
-
-
 ### redux-thunk
 
 `redux-thunk`中间件，可以让我们派发一个函数，其核心就是对action是函数的时候，执行这个函数。其原理类似于：
@@ -971,11 +967,9 @@ export function promise({ dispatch, getState }) {
 }
 ```
 
+## redux-first-history 支持router6
 
+这个库有两个核心功能：
 
-
-
-
-
-
-
+1. 把路径的状态同步到仓库中，可以在仓库中获取当前最新的路径
+2. 可以通过派发动作的方式跳转路径
