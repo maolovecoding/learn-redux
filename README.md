@@ -973,3 +973,109 @@ export function promise({ dispatch, getState }) {
 
 1. 把路径的状态同步到仓库中，可以在仓库中获取当前最新的路径
 2. 可以通过派发动作的方式跳转路径
+
+### 如何使用
+
+#### 1. 创建history对象
+
+```js
+import { createBrowserHistory } from "history";
+import { createReduxHistoryContext } from "redux-first-history";
+// 原生的history对象
+const history = createBrowserHistory();
+
+export const {
+  // 合并reducers里面的router对应的reducer
+  routerReducer,
+  // 路由中间件
+  routerMiddleware,
+  // 创建redux历史对象
+  createReduxHistory,
+} = createReduxHistoryContext({ history });
+
+```
+
+#### 2. 合并routerReducer
+
+```js
+import { combineReducers } from "redux";
+import { counter } from "./counter";
+import { routerReducer } from "../../history";
+const reducers = {
+  counter,
+  // 合并router
+  router: routerReducer,
+};
+export default combineReducers(reducers);
+```
+
+#### 3. 创建 store
+
+```js
+import { createStore, applyMiddleware } from "redux";
+import combineReducer from "./reducer";
+import { createReduxHistory, routerMiddleware } from "../history";
+// 应用中间件
+export const store =
+  applyMiddleware(routerMiddleware)(createStore)(combineReducer);
+
+export const history = createReduxHistory(store);
+
+```
+
+#### 4. 在组件中使用
+
+**app.jsx**
+
+```jsx
+import { Route, Link, Routes } from "react-router-dom";
+import { HistoryRouter } from "redux-first-history/rr6";
+import { Provider } from "react-redux";
+import { store, history } from "./store-connected";
+import Home from "./Home";
+import Counter from "./Counter";
+const App = () => {
+  return (
+    <Provider store={store}>
+      <HistoryRouter history={history}>
+        <ul>
+          <li>
+            <Link to="/">Home</Link>
+          </li>
+          <li>
+            <Link to="/counter">Counter</Link>
+          </li>
+        </ul>
+        <Routes>
+          <Route path="/" element={<Home />}></Route>
+          <Route path="/counter" element={<Counter />}></Route>
+        </Routes>
+      </HistoryRouter>
+    </Provider>
+  );
+};
+export default App;
+
+```
+
+**Home.jsx**：
+
+```jsx
+import { useDispatch } from "react-redux";
+import { push } from "redux-first-history";
+export default () => {
+  const dispatch = useDispatch()
+  const gotoCounter = () => {
+    dispatch(push("/counter"));
+  };
+  return (
+    <>
+      <div>Home</div>
+      <button onClick={gotoCounter}>跳转counter</button>
+    </>
+  );
+};
+
+```
+
+点击按钮就可以实现路由的跳转，且在store中，可以看见router对象，也就是当前的路由状态。

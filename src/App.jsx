@@ -1,14 +1,13 @@
-import { Route, Link, Router, Routes, BrowserRouter } from "react-router-dom";
-import { ConnectedRouter } from "connected-react-router";
+import { Route, Link, Routes } from "react-router-dom";
+import { HistoryRouter } from "./redux-first-history/rr6";
 import { Provider } from "react-redux";
-import store from "./store-connected";
-import history from "./history";
+import { store, history } from "./store-connected";
 import Home from "./Home";
 import Counter from "./Counter";
 const App = () => {
   return (
     <Provider store={store}>
-      <ConnectedRouter history={history}>
+      <HistoryRouter history={history}>
         <ul>
           <li>
             <Link to="/">Home</Link>
@@ -21,7 +20,7 @@ const App = () => {
           <Route path="/" element={<Home />}></Route>
           <Route path="/counter" element={<Counter />}></Route>
         </Routes>
-      </ConnectedRouter>
+      </HistoryRouter>
     </Provider>
   );
 };

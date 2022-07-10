@@ -1,8 +1,9 @@
 import { createStore, applyMiddleware } from "redux";
-import { routerMiddleware } from "connected-react-router";
 import combineReducer from "./reducer";
-import history from "../history";
+import { createReduxHistory, routerMiddleware } from "../history";
 // 应用中间件
-const store = applyMiddleware(routerMiddleware(history))(createStore)(combineReducer);
+export const store =
+  applyMiddleware(routerMiddleware)(createStore)(combineReducer);
 
-export default store;
+window.store = store
+export const history = createReduxHistory(store);

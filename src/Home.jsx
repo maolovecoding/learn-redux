@@ -1,8 +1,9 @@
-import { useNavigate} from "react-router-dom";
-
+import { useDispatch } from "react-redux";
+import { push } from "redux-first-history";
 export default () => {
+  const dispatch = useDispatch()
   const gotoCounter = () => {
-    useNavigate()("/counter");
+    dispatch(push("/counter"));
   };
   return (
     <>
