@@ -1,7 +1,7 @@
 import { Route, Link, Routes } from "react-router-dom";
-import { HistoryRouter } from "./redux-first-history/rr6";
+import { HistoryRouter } from "../../redux-first-history/rr6";
 import { Provider } from "react-redux";
-import { store, history } from "./store-connected";
+import { store, history } from "../../store-connected";
 import Home from "./Home";
 import Counter from "./Counter";
 const App = () => {

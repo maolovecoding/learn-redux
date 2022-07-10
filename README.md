@@ -702,7 +702,7 @@ export function shallowEqual(obj1, obj2) {
 }
 ```
 
-**此时就可以实现状态的改变使组件更新**
+**此时就可以实现状态的改变使组件更新**：
 
 但是在函数式组件内，派发action还是觉得有点麻烦，我们想像类组件一样更加方便一些，那么我们可以再封装一个hook，帮我们绑定`actionCreator`和`dispatch`，然后在函数式组件中就可以直接调用方法了。
 
@@ -745,7 +745,7 @@ const Counter = () => {
 
 ### connect的函数式实现
 
-**前面我们实现了connect方法，但是使用的是类组件的形式。其实我们还可以使用函数式组件实现同样的功能**
+**前面我们实现了connect方法，但是使用的是类组件的形式。其实我们还可以使用函数式组件实现同样的功能**：
 
 ```jsx
 export default function connect(mapStateToProps, mapDispatchToProps) {
@@ -845,7 +845,7 @@ export function logger({ getState, dispatch }) {
 }
 ```
 
-**此时，我们再创建仓库，就可以使用中间件应用进去了**
+**此时，我们再创建仓库，就可以使用中间件应用进去了**：
 
 ```js
 const store = applyMiddleware(logger)(createStore)(combineReducer);
@@ -1025,7 +1025,7 @@ export const history = createReduxHistory(store);
 
 #### 4. 在组件中使用
 
-**app.jsx**
+**app.jsx**：
 
 ```jsx
 import { Route, Link, Routes } from "react-router-dom";
@@ -1079,3 +1079,53 @@ export default () => {
 ```
 
 点击按钮就可以实现路由的跳转，且在store中，可以看见router对象，也就是当前的路由状态。
+
+## redux-saga
+
+- saga采用生成器函数来yield effects（也就是异步请求等，常说的副作用）
+- 生成器函数可以暂停执行，再次执行的时候从上次暂停的地方继续执行
+- effect是一个简单的对象，该对象包含了一些middleware解释执行的信息
+- 可以通过使用effect API，如果fork，call，take，put，cancel等来创建effect
+
+### saga的分类
+
+1. worker saga：做左右的构造，如调用API，进行异步请求，获取异步封装结果
+2. watcher saga：监听被dispatch的actions，当接收到action或者知道被其触发时，调用worker执行任务
+3. root saga：立即启动saga的唯一入口
+
+#### 生成器的使用
+
+```js
+function* gene() {
+  yield 100;
+  yield new Promise((resolve) => setTimeout(resolve, 1000, "你好"));
+  yield "abc";
+  return [];
+}
+/**
+ *
+ * @param {Generator} gen
+ */
+function co(gen) {
+  const it = gen();
+  function next() {
+    const { done, value } = it.next();
+    if (done && typeof value === "undefined") return;
+    if (value && typeof value.then === "function") {
+      value.then((res) => {
+        console.log(res);
+        next();
+      });
+    } else {
+      console.log(value);
+      next();
+    }
+  }
+  next()
+}
+
+co(gene)
+```
+
+**saga**的原理其实就是这个的变形。
+每次yield的值，就是我们需要派发的动作。
