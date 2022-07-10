@@ -1,4 +1,4 @@
-import { ALL, CALL, CPS, FORK, PUT, TAKE } from "./effectTypes";
+import { ALL, CALL, CANCEL, CPS, FORK, PUT, TAKE } from "./effectTypes";
 
 export const take = (actionType) => {
   return { type: TAKE, actionType };
@@ -50,4 +50,19 @@ export const all = (iterators) => {
   // 全都转为数组
   iterators = Array.isArray(iterators) ? iterators : [iterators];
   return { type: ALL, iterators };
+};
+/**
+ * 取消任务 中断迭代器的执行
+ * @param {*} task
+ */
+export const cancel = (task) => {
+  return { type: CANCEL, task };
+};
+const delayFn = (ms, ...args) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms, ...args);
+  });
+};
+export const delay = (...args) => {
+  return call(delayFn, ...args);
 };

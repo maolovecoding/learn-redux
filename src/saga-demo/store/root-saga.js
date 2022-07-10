@@ -6,8 +6,10 @@ import {
   call,
   cps,
   all,
+  cancel,
+  delay as sagaDelay,
 } from "../../redux-saga/effects";
-import { ADD, ASYNC_ADD } from "./action-type";
+import { ADD, ASYNC_ADD, STOP_ADD } from "./action-type";
 
 // 异步方案 promise
 const delay2 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -19,7 +21,6 @@ const delay = (ms, done) =>
   }, ms);
 
 function* add1() {
-  debugger
   yield take(ASYNC_ADD);
   yield put({ type: ADD });
   console.log("add 1 done !");
@@ -28,12 +29,23 @@ function* add1() {
 
 function* add2() {
   for (let i = 0; i < 2; i++) {
-    debugger
     yield take(ASYNC_ADD);
     yield put({ type: ADD });
   }
   console.log("add 2 done ! ~~~");
   return "add 2 result";
+}
+function* add() {
+  while (true) {
+    yield sagaDelay(1000);
+    yield put({ type: ADD });
+  }
+}
+function* addWatcher() {
+  // 开启子进程执行
+  const task = yield fork(add);
+  yield take(STOP_ADD); // 派发该action以后 在下面可以取消task
+  yield cancel(task); // 取消任务
 }
 /**
  * rootSaga 是saga的启动生成器
@@ -42,8 +54,10 @@ export default function* () {
   console.log("saga running!~~~");
   // yield watcherSaga(); // 产生迭代器
   // 使用all
-  const res = yield all([add1(), add2()]);
-  console.log("all add is done ~~~", res);
+  // const res = yield all([add1(), add2()]);
+  // console.log("all add is done ~~~", res);
+  // 支持取消任务
+  yield addWatcher();
 }
 /**
  * 监听saga 监听动作类型

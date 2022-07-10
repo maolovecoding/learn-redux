@@ -1,10 +1,12 @@
-import { PUT, TAKE, FORK, CALL, CPS, ALL } from "./effectTypes";
-
+import { PUT, TAKE, FORK, CALL, CPS, ALL, CANCEL } from "./effectTypes";
+const TASK_CANCEL = "TASK_CANCEL";
 /**
  * 执行启动的saga生成器函数
  * @param {*} saga
  */
 export default function runSaga(env, saga, sageDone) {
+  // 支持任务的取消
+  const task = { cancel: () => next(TASK_CANCEL) };
   // 派发的API
   const { dispatch, channel } = env;
   // 根saga是生成器函数 后续的调用可能是迭代器了
@@ -14,6 +16,9 @@ export default function runSaga(env, saga, sageDone) {
     if (isError) {
       // 出现错误
       result = it.throw(value);
+    } else if (value === "TASK_CANCEL") {
+      // 结束当前迭代器
+      result = it.return(value);
     } else {
       result = it.next(value);
     }
@@ -61,7 +66,6 @@ export default function runSaga(env, saga, sageDone) {
             });
             break;
           case ALL:
-            debugger
             // 迭代器数组
             const { iterators } = effect;
             // 存放结果对象 放置每个迭代器的返回值
@@ -73,10 +77,18 @@ export default function runSaga(env, saga, sageDone) {
               runSaga(env, iterator, (data) => {
                 res[index] = data;
                 if (++completeCount === iterators.length) {
+                  // 所有子进程的saga都完成了 继续执行本saga
                   next(res);
                 }
               });
             });
+            // 继续执行下一个迭代器
+            next();
+            break;
+          case CANCEL:
+            // 中断迭代器
+            effect.task.cancel();
+            next();
             break;
           default:
             break;
@@ -90,4 +102,5 @@ export default function runSaga(env, saga, sageDone) {
     }
   }
   next();
+  return task;
 }
