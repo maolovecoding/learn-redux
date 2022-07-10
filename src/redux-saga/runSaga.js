@@ -1,10 +1,10 @@
-import { PUT, TAKE, FORK, CALL, CPS } from "./effectTypes";
+import { PUT, TAKE, FORK, CALL, CPS, ALL } from "./effectTypes";
 
 /**
  * 执行启动的saga生成器函数
  * @param {*} saga
  */
-export default function runSaga(env, saga) {
+export default function runSaga(env, saga, sageDone) {
   // 派发的API
   const { dispatch, channel } = env;
   // 根saga是生成器函数 后续的调用可能是迭代器了
@@ -60,9 +60,32 @@ export default function runSaga(env, saga) {
               }
             });
             break;
+          case ALL:
+            debugger
+            // 迭代器数组
+            const { iterators } = effect;
+            // 存放结果对象 放置每个迭代器的返回值
+            const res = [];
+            // 迭代器完成的数量
+            let completeCount = 0;
+            iterators.forEach((iterator, index) => {
+              // 循环迭代器 开启一个新的子进程
+              runSaga(env, iterator, (data) => {
+                res[index] = data;
+                if (++completeCount === iterators.length) {
+                  next(res);
+                }
+              });
+            });
+            break;
           default:
             break;
         }
+      }
+    } else {
+      // 当前的迭代器执行完毕了
+      if (typeof sageDone === "function") {
+        sageDone(effect);
       }
     }
   }

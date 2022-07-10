@@ -1,4 +1,4 @@
-import { CALL, CPS, FORK, PUT, TAKE } from "./effectTypes";
+import { ALL, CALL, CPS, FORK, PUT, TAKE } from "./effectTypes";
 
 export const take = (actionType) => {
   return { type: TAKE, actionType };
@@ -35,10 +35,19 @@ export const call = (fn, ...args) => {
 };
 /**
  * 执行异步函数 但是是回调函数形式的
- * @param {*} fn 
- * @param  {...any} args 
- * @returns 
+ * @param {*} fn
+ * @param  {...any} args
+ * @returns
  */
 export const cps = (fn, ...args) => {
   return { type: CPS, fn, args };
+};
+/**
+ * 传入一个迭代器
+ * @param {*} iterators 可能是一个对象 或者是一个数组
+ */
+export const all = (iterators) => {
+  // 全都转为数组
+  iterators = Array.isArray(iterators) ? iterators : [iterators];
+  return { type: ALL, iterators };
 };

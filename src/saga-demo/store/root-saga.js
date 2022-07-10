@@ -5,6 +5,7 @@ import {
   takeEvery,
   call,
   cps,
+  all,
 } from "../../redux-saga/effects";
 import { ADD, ASYNC_ADD } from "./action-type";
 
@@ -16,12 +17,33 @@ const delay = (ms, done) =>
     // 错误优先
     done(null, "delay is ok");
   }, ms);
+
+function* add1() {
+  debugger
+  yield take(ASYNC_ADD);
+  yield put({ type: ADD });
+  console.log("add 1 done !");
+  return "add 1 result";
+}
+
+function* add2() {
+  for (let i = 0; i < 2; i++) {
+    debugger
+    yield take(ASYNC_ADD);
+    yield put({ type: ADD });
+  }
+  console.log("add 2 done ! ~~~");
+  return "add 2 result";
+}
 /**
  * rootSaga 是saga的启动生成器
  */
 export default function* () {
   console.log("saga running!~~~");
-  yield watcherSaga(); // 产生迭代器
+  // yield watcherSaga(); // 产生迭代器
+  // 使用all
+  const res = yield all([add1(), add2()]);
+  console.log("all add is done ~~~", res);
 }
 /**
  * 监听saga 监听动作类型
