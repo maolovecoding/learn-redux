@@ -6,11 +6,15 @@ export default class EventEmitter {
       events.forEach((event) => event(...args));
     }
   }
+  on(eventType, fn) {
+    const events = this.events[eventType] || (this.events[eventType] = []);
+    events.push(fn);
+  }
   once(eventType, fn) {
     const events = this.events[eventType] || (this.events[eventType] = []);
     const once = (...args) => {
       fn(...args);
-      this.off(once);
+      this.off(eventType,once);
     };
     events.push(once);
   }
