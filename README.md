@@ -1089,7 +1089,7 @@ export default () => {
 
 ### saga的分类
 
-1. worker saga：做左右的构造，如调用API，进行异步请求，获取异步封装结果
+1. worker saga：做工作的构造，如调用API，进行异步请求，获取异步封装结果
 2. watcher saga：监听被dispatch的actions，当接收到action或者知道被其触发时，调用worker执行任务
 3. root saga：立即启动saga的唯一入口
 
@@ -1129,3 +1129,12 @@ co(gene)
 
 **saga**的原理其实就是这个的变形。
 每次yield的值，就是我们需要派发的动作。
+
+#### effects
+
+在saga中，我们会使用effects，也就是指令对象。我们可以想象root-saga就是一个饭店门口招呼客人进来吃饭的，effects就类似于菜单，客人想吃什么就直接在菜单上点菜（如果客人是外国人服务员可能就无法和客人正常沟通）。
+
+可以通过effects告诉saga我们想做什么。take是接收，当saga执行到take指令的时候，会卡在这里，等待用户派发一个action才会往下走，put是发送，真正往仓库派发的动作。
+
+但是take只会等待一次。
+
