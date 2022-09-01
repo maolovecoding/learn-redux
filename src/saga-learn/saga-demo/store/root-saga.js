@@ -2,7 +2,7 @@ import {
   put,
   take,
   // fork,
-  // takeEvery,
+  takeEvery,
   // call,
   // cps,
   // all,
@@ -13,7 +13,8 @@ import {
 import { ADD, ASYNC_ADD, STOP_ADD } from "./action-type";
 
 // 异步方案 promise
-const delay2 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay2 = (ms) =>
+  new Promise((resolve) => setTimeout(resolve, ms, `${ms}ms resolve ok!`));
 // 异步方案2 使用回调函数
 const delay = (ms, done) =>
   setTimeout(() => {
@@ -22,7 +23,9 @@ const delay = (ms, done) =>
   }, ms);
 
 function* add1() {
-  yield take(ASYNC_ADD);
+  // yield take(ASYNC_ADD);
+  const res = yield delay2(1000);// 遇到promise 等待promise完成
+  console.log(res);
   yield put({ type: ADD });
   console.log("add 1 done !");
   return "add 1 result";
@@ -53,10 +56,12 @@ function* addWatcher() {
  */
 export default function* () {
   console.log("saga running!~~~");
-  const action = yield take(ASYNC_ADD);
-  console.log(action)
-  // yield put({type:ADD});
-  yield add1()
+  // const action = yield take(ASYNC_ADD);
+  // console.log(action)
+  // // yield put({type:ADD});
+  // yield add1()
+  yield takeEvery(ASYNC_ADD, add1);
+  console.log("root done");
   // yield watcherSaga(); // 产生迭代器
   // 使用all
   // const res = yield all([add1(), add2()]);

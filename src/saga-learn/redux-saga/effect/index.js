@@ -1,3 +1,3 @@
-export { TAKE, PUT } from "./effectType";
-export { take, put } from "./effect";
+export { TAKE, PUT, FORK, CALL, CPS, ALL, CANCEL } from "./effectType";
+export { take, put, takeEvery, fork } from "./effect";
 export { default as effectRunnerMap } from "./effectRunnerMap";

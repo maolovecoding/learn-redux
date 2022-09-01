@@ -1,14 +1,15 @@
-import { PUT, TAKE } from "./effectType";
+import { PUT, TAKE, FORK } from "./effectType";
+import proc from "../proc";
 const effectRunnerMap = {
   [TAKE]: runTakeEffect,
   [PUT]: runPutEffect,
+  [FORK]: runForkEffect,
 };
-export default effectRunnerMap;
 /**
  * 执行 take
- * @param {*} env 
- * @param {*} payload 
- * @param {*} next 
+ * @param {*} env
+ * @param {*} payload
+ * @param {*} next
  */
 function runTakeEffect(env, payload, next) {
   // payload:{pattern:'ASYNC_ADD'}
@@ -19,6 +20,12 @@ function runTakeEffect(env, payload, next) {
 
 function runPutEffect(env, payload, next) {
   // 派发 dispatch 是经过中间件改造后的dispatch
-  env.dispatch(payload.action)
-  next()
-} 
+  env.dispatch(payload.action);
+  next();
+}
+function runForkEffect(env, payload, next) {
+  const iteratorTask = payload.fn(); // saga执行
+  proc(env, iteratorTask);
+  next(); // 不会阻塞 而是直接调用next
+}
+export default effectRunnerMap;
