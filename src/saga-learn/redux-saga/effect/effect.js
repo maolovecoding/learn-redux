@@ -1,4 +1,4 @@
-import { TAKE, PUT, FORK, CALL, CPS } from "./effectType";
+import { TAKE, PUT, FORK, CALL, CPS, ALL } from "./effectType";
 const makeEffect = (type, payload) => {
   return { type, payload };
 };
@@ -56,10 +56,18 @@ export function call(fn, ...args) {
 }
 /**
  * 错误优先的回调函数调用风格 node中的
- * @param {*} fn 
- * @param  {...any} args 
- * @returns 
+ * @param {*} fn
+ * @param  {...any} args
+ * @returns
  */
 export function cps(fn, ...args) {
   return makeEffect(CPS, { fn, args });
+}
+/**
+ * all合并多个异步操作 当某个操作失败或者全部操作成功则进行返回
+ * all中的异步操作是并发也是同步，不用等一个结束 也不用等另一个开始
+ * @param {GeneratorFunction[]} effects
+ */
+export function all(effects) {
+  return makeEffect(ALL, effects);
 }

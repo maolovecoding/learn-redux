@@ -5,7 +5,7 @@ import {
   takeEvery,
   call,
   cps,
-  // all,
+  all,
   // cancel,
   // delay as sagaDelay,
 } from "../../redux-saga/effect";
@@ -53,6 +53,21 @@ function* addWatcher() {
   yield take(STOP_ADD); // 派发该action以后 在下面可以取消task
   yield cancel(task); // 取消任务
 }
+
+function* add3() {
+  for (let i = 0; i < 3; i++) {
+    yield take(ASYNC_ADD);
+    yield put({ type: ADD });
+  }
+  return '3 ok'
+}
+function* add4() {
+  for (let i = 0; i < 3; i++) {
+    yield take(ASYNC_ADD);
+    yield put({ type: ADD });
+  }
+  return '4 ok'
+}
 /**
  * rootSaga 是saga的启动生成器
  */
@@ -62,7 +77,10 @@ export default function* () {
   // console.log(action)
   // // yield put({type:ADD});
   // yield add1()
-  yield takeEvery(ASYNC_ADD, add1);
+  // yield takeEvery(ASYNC_ADD, add1);
+  const res = yield all([add3(), add4()]);
+  // 两个迭代器执行完来到这里
+  console.log(res, "res all");
   console.log("root done");
   // yield watcherSaga(); // 产生迭代器
   // 使用all

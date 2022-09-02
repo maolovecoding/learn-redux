@@ -1,12 +1,14 @@
-import { PUT, TAKE, FORK, CALL, CPS } from "./effectType";
+import { PUT, TAKE, FORK, CALL, CPS, ALL } from "./effectType";
 import proc from "../proc";
 import * as is from "../is";
+import { createAllStyleChildCallbacks } from "../utils";
 const effectRunnerMap = {
   [TAKE]: runTakeEffect,
   [PUT]: runPutEffect,
   [FORK]: runForkEffect,
   [CALL]: runCallEffect,
   [CPS]: runCpsEffect,
+  [ALL]: runAllEffect,
 };
 /**
  * 执行 take
@@ -50,6 +52,22 @@ function runCpsEffect(env, payload, next) {
     } else {
       next(data);
     }
+  });
+}
+/**
+ * 同时执行多个迭代器
+ * @param {*} env
+ * @param {*} payload
+ * @param {*} next
+ */
+function runAllEffect(env, payload, next, { runEffect }) {
+  const effects = payload;
+  const keys = Object.keys(effects);
+  if (keys.length === 0) return next([]);
+  const childCallbacks = createAllStyleChildCallbacks(effects, next);
+  keys.forEach((key) => {
+    // 执行saga 以及我们上面创建的回调函数
+    runEffect(effects[key], childCallbacks[key]);
   });
 }
 export default effectRunnerMap;
