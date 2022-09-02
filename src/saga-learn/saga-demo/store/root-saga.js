@@ -3,8 +3,8 @@ import {
   take,
   // fork,
   takeEvery,
-  // call,
-  // cps,
+  call,
+  cps,
   // all,
   // cancel,
   // delay as sagaDelay,
@@ -24,7 +24,9 @@ const delay = (ms, done) =>
 
 function* add1() {
   // yield take(ASYNC_ADD);
-  const res = yield delay2(1000);// 遇到promise 等待promise完成
+  // const res = yield delay2(1000);// 遇到promise 等待promise完成
+  // const res = yield call(delay2, 1000); // 等待该函数返回的promise状态发生改变
+  const res = yield cps(delay, 1000); // 等待该函数返回的promise状态发生改变
   console.log(res);
   yield put({ type: ADD });
   console.log("add 1 done !");

@@ -1,4 +1,4 @@
-import { TAKE, PUT, FORK } from "./effectType";
+import { TAKE, PUT, FORK, CALL, CPS } from "./effectType";
 const makeEffect = (type, payload) => {
   return { type, payload };
 };
@@ -37,7 +37,7 @@ export function takeEvery(pattern, saga) {
 }
 /**
  * fork异步非阻塞调用 无阻塞的执行fn 执行fn的时候 不会暂停generator
- * 一个task就像是一个在后台运行的进程，在基于redux-saga的应用程序中 
+ * 一个task就像是一个在后台运行的进程，在基于redux-saga的应用程序中
  * 可以同时运行多个task
  * @param {*} fn 子saga 也就是说子saga和当前的父saga函数是 `并行` 执行的
  * @returns
@@ -45,4 +45,21 @@ export function takeEvery(pattern, saga) {
 export function fork(fn) {
   // {type:'FORK', payload:{fn:add}}
   return makeEffect(FORK, { fn });
+}
+/**
+ *
+ * @param {*} fn 调用该函数返回值是一个promise 等待该promise执行完成再向下走
+ * @param {any[]} args 传给fn的参数
+ */
+export function call(fn, ...args) {
+  return makeEffect(CALL, { fn, args });
+}
+/**
+ * 错误优先的回调函数调用风格 node中的
+ * @param {*} fn 
+ * @param  {...any} args 
+ * @returns 
+ */
+export function cps(fn, ...args) {
+  return makeEffect(CPS, { fn, args });
 }

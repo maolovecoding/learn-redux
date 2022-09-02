@@ -1,9 +1,12 @@
-import { PUT, TAKE, FORK } from "./effectType";
+import { PUT, TAKE, FORK, CALL, CPS } from "./effectType";
 import proc from "../proc";
+import * as is from "../is";
 const effectRunnerMap = {
   [TAKE]: runTakeEffect,
   [PUT]: runPutEffect,
   [FORK]: runForkEffect,
+  [CALL]: runCallEffect,
+  [CPS]: runCpsEffect,
 };
 /**
  * 执行 take
@@ -27,5 +30,26 @@ function runForkEffect(env, payload, next) {
   const iteratorTask = payload.fn(); // saga执行
   proc(env, iteratorTask);
   next(); // 不会阻塞 而是直接调用next
+}
+function runCallEffect(env, payload, next) {
+  const { fn, args } = payload;
+  // 看函数执行结果是不是promise
+  const res = fn(...args);
+  if (is.promise(res)) {
+    res.then(next).catch((err) => next(err, true));
+  } else {
+    next(res);
+  }
+}
+function runCpsEffect(env, payload, next) {
+  const { fn, args } = payload;
+  // 多传一个回调函数
+  fn(...args, (err, data) => {
+    if (err) {
+      next(err, true);
+    } else {
+      next(data);
+    }
+  });
 }
 export default effectRunnerMap;
