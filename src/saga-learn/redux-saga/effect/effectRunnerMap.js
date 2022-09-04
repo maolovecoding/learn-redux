@@ -1,4 +1,4 @@
-import { PUT, TAKE, FORK, CALL, CPS, ALL } from "./effectType";
+import { PUT, TAKE, FORK, CALL, CPS, ALL, CANCEL } from "./effectType";
 import proc from "../proc";
 import * as is from "../is";
 import { createAllStyleChildCallbacks } from "../utils";
@@ -9,6 +9,7 @@ const effectRunnerMap = {
   [CALL]: runCallEffect,
   [CPS]: runCpsEffect,
   [ALL]: runAllEffect,
+  [CANCEL]: runCancelEffect,
 };
 /**
  * 执行 take
@@ -30,8 +31,8 @@ function runPutEffect(env, payload, next) {
 }
 function runForkEffect(env, payload, next) {
   const iteratorTask = payload.fn(); // saga执行
-  proc(env, iteratorTask);
-  next(); // 不会阻塞 而是直接调用next
+  const task = proc(env, iteratorTask);
+  next(task); // 不会阻塞 而是直接调用next
 }
 function runCallEffect(env, payload, next) {
   const { fn, args } = payload;
@@ -69,5 +70,18 @@ function runAllEffect(env, payload, next, { runEffect }) {
     // 执行saga 以及我们上面创建的回调函数
     runEffect(effects[key], childCallbacks[key]);
   });
+}
+/**
+ * 取消task任务
+ * @param {*} env
+ * @param {*} payload
+ * @param {*} next
+ */
+function runCancelEffect(env, payload, next) {
+  // saga task 任务
+  const task = payload
+  // 取消 
+  task.cancel()
+  next()
 }
 export default effectRunnerMap;

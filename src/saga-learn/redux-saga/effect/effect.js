@@ -1,4 +1,4 @@
-import { TAKE, PUT, FORK, CALL, CPS, ALL } from "./effectType";
+import { TAKE, PUT, FORK, CALL, CPS, ALL, CANCEL } from "./effectType";
 const makeEffect = (type, payload) => {
   return { type, payload };
 };
@@ -71,3 +71,16 @@ export function cps(fn, ...args) {
 export function all(effects) {
   return makeEffect(ALL, effects);
 }
+/**
+ * cancel 指示middleware取消之前的 fork 任务 cancel是一个无阻塞的effect
+ * @returns
+ */
+export function cancel(task) {
+  return makeEffect(CANCEL, task);
+}
+
+export function delayP(ms) {
+  const promise = new Promise((resolve) => setTimeout(resolve, ms));
+  return promise;
+}
+export const delay = call.bind(null, delayP);

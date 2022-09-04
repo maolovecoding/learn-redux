@@ -1,13 +1,13 @@
 import {
   put,
   take,
-  // fork,
+  fork,
   takeEvery,
   call,
   cps,
   all,
-  // cancel,
-  // delay as sagaDelay,
+  cancel,
+  delay as sagaDelay,
 } from "../../redux-saga/effect";
 // 什么是effects，就是指令对象
 import { ADD, ASYNC_ADD, STOP_ADD } from "./action-type";
@@ -59,14 +59,27 @@ function* add3() {
     yield take(ASYNC_ADD);
     yield put({ type: ADD });
   }
-  return '3 ok'
+  return "3 ok";
 }
 function* add4() {
   for (let i = 0; i < 3; i++) {
     yield take(ASYNC_ADD);
     yield put({ type: ADD });
   }
-  return '4 ok'
+  return "4 ok";
+}
+function* add5() {
+  while (1) {
+    yield sagaDelay(1000);
+    yield put({ type: ADD });
+  }
+}
+function* addWatcher2() {
+  const task = yield fork(add5);
+  yield take(STOP_ADD);
+  // 取消任务
+  yield cancel(task);
+  return  'watcher done'
 }
 /**
  * rootSaga 是saga的启动生成器
@@ -78,7 +91,8 @@ export default function* () {
   // // yield put({type:ADD});
   // yield add1()
   // yield takeEvery(ASYNC_ADD, add1);
-  const res = yield all([add3(), add4()]);
+  // const res = yield all([add3(), add4()]);
+  const res = yield addWatcher2();
   // 两个迭代器执行完来到这里
   console.log(res, "res all");
   console.log("root done");

@@ -1,5 +1,6 @@
 import { effectRunnerMap } from "./effect";
 import * as is from "./is";
+import { TASK_CANCEL } from "./symbol";
 /**
  * 自动执行迭代器
  * @param {*} env
@@ -7,6 +8,10 @@ import * as is from "./is";
  * @param {} continueNextIterator 继续执行上一个阻塞的迭代器
  */
 export default function proc(env, iterator, continueNextIterator) {
+  const task = {
+    // 取消任务
+    cancel: () => next(TASK_CANCEL),
+  };
   /**
    *
    * @param {*} args 上一个yield的执行结果
@@ -17,6 +22,8 @@ export default function proc(env, iterator, continueNextIterator) {
     // 迭代器执行时出现错误
     if (isError === true) {
       result = iterator.throw(args);
+    } else if (args === TASK_CANCEL) {
+      result = iterator.return(args);
     } else {
       // result = yield take(xxx) => {value:take(xxx), done:false}
       result = iterator.next(args);
@@ -26,7 +33,7 @@ export default function proc(env, iterator, continueNextIterator) {
       runEffect(result.value, next);
     } else {
       // 当前的saga执行完毕了 可以执行上一个被当前新迭代器阻塞的saga
-      continueNextIterator?.();
+      continueNextIterator?.(result.value); // 别忘了传入当前结果给上一个next
     }
   };
   const runEffect = (effect, next) => {
@@ -49,6 +56,7 @@ export default function proc(env, iterator, continueNextIterator) {
     }
   };
   next();
+  return task;
 }
 
 async function resolvePromise(promise, next) {

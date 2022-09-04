@@ -9,11 +9,13 @@ export function createAllStyleChildCallbacks(effects, parentNext) {
   let completeCount = 0; //完成的数量
   const results = new Array(totalCount);
   const childrenCallbacks = {};
-  const checkEnd = () =>
-    totalCount === completeCount ? parentNext(results) : 0;
+  const checkEnd = () =>{
+    if( totalCount === completeCount) parentNext(results)
+  }
   keys.forEach((key) => {
     // 每完成一个子effect 就会调用对应的子回调函数
     childrenCallbacks[key] = (res) => {
+      debugger
       results[key] = res;
       completeCount++;
       checkEnd();
